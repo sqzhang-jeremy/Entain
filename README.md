@@ -13,7 +13,8 @@ The package supports two workflows:
 .
 |-- Dockerfile
 |-- README.md
-|-- bets.csv
+|-- data/
+|   `-- bets.csv
 |-- docs/
 |   |-- architecture-diagram.mmd
 |   `-- design-note.md
@@ -61,6 +62,34 @@ bet-pipeline build-features --input /data/bets.csv --output /outputs/features/
 
 The `build-features` command is self-contained: it re-validates the raw input before generating customer features, so it does not require a prior `validate` run.
 
+## Docker
+
+Build the image:
+
+```bash
+docker build -t entain-bet-pipeline .
+```
+
+Run validation in Docker:
+
+```bash
+docker run --rm \
+  -v "$(pwd)/data:/data" \
+  -v "$(pwd)/outputs:/outputs" \
+  entain-bet-pipeline validate --input /data/bets.csv --output /outputs/validation/
+```
+
+Run feature generation in Docker:
+
+```bash
+docker run --rm \
+  -v "$(pwd)/data:/data" \
+  -v "$(pwd)/outputs:/outputs" \
+  entain-bet-pipeline build-features --input /data/bets.csv --output /outputs/features/
+```
+
+The container image includes only the package code and runtime dependencies. Input data and generated outputs are passed in through mounted `data/` and `outputs/` directories so the workflow stays reproducible and the artifacts remain on the host machine.
+
 ## Output Files
 
 Validation outputs:
@@ -97,8 +126,8 @@ Implemented:
 - Task 1: validation pipeline
 - Task 2: customer feature pipeline
 - Task 3: Python packaging, CLI entrypoint, and automated tests
+- Task 4: Docker image build and mounted-volume runtime verification
 
 Remaining:
 
-- Task 4: Docker workflow validation and documentation polish
 - Task 5: architecture diagram and final design note completion
