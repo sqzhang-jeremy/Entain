@@ -1,22 +1,40 @@
 flowchart LR
-    A["Raw betting data landing area"] --> B["Batch scheduler / job trigger"]
-    B --> C["Validation job"]
-    C --> D["Validated bets layer"]
-    C --> E["Invalid-record quarantine / review queue"]
-    D --> F["Customer feature generation job"]
-    F --> G["Versioned feature output / feature store / serving table"]
+    subgraph BP["Batch Pipeline"]
+        A["Raw betting data landing area"] --> C["Validation job"]
+        C --> D["Validated bets layer"]
+        C --> E["Invalid-record quarantine / review queue"]
+        D --> F["Customer feature generation job"]
+        F -->|publishes new version| G["Versioned feature output / feature store / serving table"]
+    end
 
-    H["Schema contract / metadata / configuration"] -. governs .-> C
+    subgraph CG["Control And Governance"]
+        B["Batch scheduler / job trigger"]
+        H["Schema contract / metadata / configuration"]
+        M["Rerun / backfill / correction path"]
+    end
+
+    subgraph OB["Observability"]
+        I["Logging / monitoring / alerting"]
+    end
+
+    subgraph DC["Consumers"]
+        J["Downstream consumer: batch model training"]
+        K["Downstream consumer: batch scoring / decisioning"]
+        L["Downstream consumer: BI / analytics / CRM"]
+    end
+
+    B -. triggers .-> C
+    M -. triggers .-> C
+    M -. triggers .-> F
+
+    H -. governs .-> C
     H -. governs .-> F
-    H -. defines feature logic .-> G
+    H -. governs .-> G
 
-    C -. logs / metrics .-> I["Logging / monitoring / alerting"]
+    C -. logs / metrics .-> I
     F -. logs / metrics .-> I
     E -. data quality alerts .-> I
 
-    G --> J["Downstream consumer: batch model training"]
-    G --> K["Downstream consumer: batch scoring / decisioning"]
-    G --> L["Downstream consumer: BI / analytics / CRM"]
-
-    M["Rerun / backfill / correction path"] --> C
-    M --> F
+    G --> J
+    G --> K
+    G --> L

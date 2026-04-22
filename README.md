@@ -1,6 +1,6 @@
 # Entain Australia Junior MLE Take-Home
 
-This repository contains a local, batch-oriented Python package for the Entain Australia junior Machine Learning Engineer take-home assignment.
+This repository contains the completed submission for the Entain Australia junior Machine Learning Engineer take-home assignment.
 
 The package supports two workflows:
 
@@ -119,15 +119,12 @@ The current suite covers:
 - customer feature aggregation and invalid-bet handling
 - CLI parser and command dispatch
 
-## Current Status
+## Submission Status
 
-Implemented:
+Completed:
 
 - Task 1: validation pipeline
 - Task 2: customer feature pipeline
 - Task 3: Python packaging, CLI entrypoint, and automated tests
 - Task 4: Docker image build and mounted-volume runtime verification
-
-Remaining:
-
-- Task 5: architecture diagram and final design note completion
+- Task 5: architecture diagram and design note

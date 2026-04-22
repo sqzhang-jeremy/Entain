@@ -1,54 +1,26 @@
 # AGENT.md
 
-This file is the working brief for the Entain Australia junior Machine Learning Engineer take-home assignment.
+This file is a concise implementation summary for the completed Entain Australia junior MLE take-home assignment.
 
-It is intentionally focused on understanding and planning the task before implementation.
+## Assignment Outcome
 
-Please be concise while helping candidate finsih this assignment.
+The repository now contains a local, reproducible, batch-oriented Python package that:
 
-## Assignment Summary
+- validates raw betting data against the business rules from the brief
+- separates valid and invalid bets
+- produces a machine-readable validation report
+- builds customer-level features from validated bets
+- exposes both workflows through a CLI
+- runs in Docker
+- includes automated tests, a README, an architecture diagram, and a design note
 
-Build a small, local, reproducible, batch-oriented Python package that:
+## Input Data
 
-- validates raw betting data from `bets.csv` against explicit business rules
-- makes invalid records explicit rather than silently dropping them
-- builds a customer-level feature dataset from each customer's first 20 bets
-- exposes the workflow through CLI commands
-- can run in Docker
-- includes tests, a README, an architecture diagram, and a short design note
-
-The brief explicitly says:
-
-- use Python
-- keep the solution local and batch-oriented
-- do not build an API
-- do not train a model
-- do not use cloud services
-
-## Source Assets In This Workspace
-
-- `jr-mle-task.docx`: assignment brief
-- `bets.csv`: input dataset
-
-Quick facts gathered from the local files:
-
-- `bets.csv` has 372,296 lines including the header
-- current header:
+- source file: `data/bets.csv`
+- columns:
   `bet_id,customer_id,bet_datetime,bet_num,betting_amount,price,category,stake_type,bet_result,payout,return_for_entain`
 
-## Required Deliverables From The Brief
-
-- source code
-- `pyproject.toml`
-- `Dockerfile`
-- `README.md`
-- tests
-- validation outputs
-- customer feature output
-- architecture diagram
-- design note
-
-## Business Rules To Enforce
+## Implemented Business Rules
 
 Field/domain rules:
 
@@ -61,93 +33,62 @@ Field/domain rules:
 Derived-value rules:
 
 - if `bet_result == "no-return"`, then `payout = 0`
-- if `bet_result == "return"` and `stake_type == "cash"`, then
-  `payout = betting_amount * price`
-- if `bet_result == "return"` and `stake_type == "bonus"`, then
-  `payout = betting_amount * (price - 1)`
-
-- if `bet_result == "no-return"` and `stake_type == "cash"`, then
-  `return_for_entain = betting_amount`
-- if `bet_result == "no-return"` and `stake_type == "bonus"`, then
-  `return_for_entain = 0`
-- if `bet_result == "return"` and `stake_type == "cash"`, then
-  `return_for_entain = betting_amount - payout`
-- if `bet_result == "return"` and `stake_type == "bonus"`, then
-  `return_for_entain = -payout`
+- if `bet_result == "return"` and `stake_type == "cash"`, then `payout = betting_amount * price`
+- if `bet_result == "return"` and `stake_type == "bonus"`, then `payout = betting_amount * (price - 1)`
+- if `bet_result == "no-return"` and `stake_type == "cash"`, then `return_for_entain = betting_amount`
+- if `bet_result == "no-return"` and `stake_type == "bonus"`, then `return_for_entain = 0`
+- if `bet_result == "return"` and `stake_type == "cash"`, then `return_for_entain = betting_amount - payout`
+- if `bet_result == "return"` and `stake_type == "bonus"`, then `return_for_entain = -payout`
 
 Sequencing rules:
 
-- `bet_id` should be unique per row
-- `bet_num` is the authoritative bet order for each customer
-- ordering consistency should be validated where relevant
+- `bet_id` must be unique
+- `bet_num` is the authoritative ordering field per customer
+- ordering inconsistencies are surfaced during validation
 
-## Feature Output Requirements
+## Feature-Build Decisions
 
-The customer-level feature dataset must be built from each customer's first 20 bets using validated data.
+- feature generation uses validated data only
+- features are built from the first 20 valid bets ordered by `bet_num`
+- if invalid bets appear within raw `bet_num` positions 1-20, they are skipped and the window extends forward until 20 valid bets are collected
+- if fewer than 20 valid bets exist overall, the customer is still emitted with a partial window and `bets_used < 20`
+- `customer_features` is emitted as CSV for simplicity and inspectability, with that trade-off documented in the design note
 
-The brief requires at minimum:
-
-- `customer_id`
-- `first_bet_datetime`
-- `twentieth_bet_datetime`
-- `bets_used`
-- `total_betting_amount`
-- `mean_betting_amount`
-- `mean_price`
-- `pct_racing`
-- `pct_cash`
-- `pct_return`
-- `total_payout`
-- `total_return_for_entain`
-- `feature_generated_at`
-
-The brief also says:
-
-- if invalid records appear within the first 20 bets, document the handling clearly
-- behaviour must stay deterministic
-- parquet is preferred, CSV is acceptable with justification
-
-## Expected CLI Contract
-
-The package should support commands equivalent to:
+## CLI Contract
 
 - `bet-pipeline validate --input /data/bets.csv --output /outputs/validation/`
 - `bet-pipeline build-features --input /data/bets.csv --output /outputs/features/`
 
-## Open Decisions To Resolve During Implementation
+## Outputs
 
-1. How to handle invalid rows in the first 20 bets for a customer.
-2. Whether to emit parquet or CSV for `customer_features`.
-3. What to include in the machine-readable validation report beyond rule counts.
-4. Whether to treat ordering issues as row-level failures, customer-level failures, or both.
-5. Which dependency footprint is reasonable for a junior take-home submission.
+Validation:
 
-## Suggested Implementation Plan
+- `outputs/validation/valid_bets.csv`
+- `outputs/validation/invalid_bets.csv`
+- `outputs/validation/validation_report.json`
 
-1. Inspect and profile the raw dataset.
-2. Define the validation contract and failure taxonomy.
-3. Implement validation logic and machine-readable outputs.
-4. Decide and document deterministic handling for invalid rows inside the first 20 bets.
-5. Implement feature generation from validated data.
-6. Add CLI entry points.
-7. Add tests for validation and aggregation edge cases.
-8. Finalize Docker packaging.
-9. Finish the architecture diagram and design note.
-10. Run the pipeline locally and save final outputs.
+Features:
 
-## Delivery Checklist
+- `outputs/features/customer_features.csv`
+- `outputs/features/feature_build_report.json`
 
-- [ ] Validation pipeline implemented
-- [ ] Feature pipeline implemented
-- [ ] CLI commands working
-- [ ] Docker build/run documented and tested
-- [ ] Tests added
-- [ ] Validation outputs generated
-- [ ] Customer feature output generated
-- [ ] Architecture diagram finalized
-- [ ] Design note finalized
-- [ ] README finalized
+## Verification
 
-## Current Status
+Implemented and checked:
 
-This repository is currently scaffolded only. The delivery files exist, but the assignment logic has not been implemented yet.
+- validation pipeline
+- feature pipeline
+- CLI entrypoint
+- Docker build and mounted-volume runtime
+- automated tests for validation, feature generation, and CLI behavior
+- architecture diagram
+- design note
+
+Suggested local verification commands:
+
+```bash
+PYTHONPATH=src python3.11 -m unittest tests.test_validate tests.test_build_features tests.test_cli
+docker build -t entain-bet-pipeline .
+docker run --rm -v "$(pwd)/data:/data" -v "$(pwd)/outputs:/outputs" entain-bet-pipeline validate --input /data/bets.csv --output /outputs/validation/
+docker run --rm -v "$(pwd)/data:/data" -v "$(pwd)/outputs:/outputs" entain-bet-pipeline build-features --input /data/bets.csv --output /outputs/features/
+```
