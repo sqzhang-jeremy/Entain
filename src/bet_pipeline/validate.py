@@ -29,6 +29,31 @@ ALLOWED_STAKE_TYPES = {"cash", "bonus"}
 ALLOWED_BET_RESULTS = {"return", "no-return"}
 ZERO = Decimal("0")
 DECIMAL_TOLERANCE = Decimal("0.000001")
+DATETIME_FORMATS = (
+    "%Y-%m-%d %H:%M:%S.%f",
+    "%Y-%m-%d %H:%M:%S",
+)
+ALL_RULE_NAMES = [
+    "bet_id_not_integer",
+    "customer_id_missing",
+    "bet_datetime_invalid",
+    "bet_num_not_integer",
+    "bet_num_not_positive",
+    "betting_amount_not_numeric",
+    "betting_amount_not_gt_0",
+    "price_not_numeric",
+    "price_not_gt_1",
+    "invalid_category",
+    "invalid_stake_type",
+    "invalid_bet_result",
+    "payout_not_numeric",
+    "return_for_entain_not_numeric",
+    "payout_mismatch",
+    "return_for_entain_mismatch",
+    "duplicate_bet_id",
+    "duplicate_bet_num_for_customer",
+    "bet_datetime_out_of_order_for_customer",
+]
 
 
 @dataclass
@@ -165,11 +190,14 @@ def _parse_datetime(
     row: ValidationRow, column: str, error_name: str
 ) -> datetime | None:
     value = row.raw.get(column, "")
-    try:
-        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S.%f")
-    except (TypeError, ValueError):
-        row.add_error(error_name)
-        return None
+    for fmt in DATETIME_FORMATS:
+        try:
+            return datetime.strptime(value, fmt)
+        except (TypeError, ValueError):
+            continue
+
+    row.add_error(error_name)
+    return None
 
 
 def _validate_derived_values(row: ValidationRow) -> None:
@@ -310,7 +338,7 @@ def _write_report(
     valid_rows = sum(1 for row in rows if row.is_valid)
     invalid_rows = len(rows) - valid_rows
 
-    failure_counts = Counter()
+    failure_counts = Counter({rule_name: 0 for rule_name in ALL_RULE_NAMES})
     for row in rows:
         for error in row.errors:
             failure_counts[error] += 1

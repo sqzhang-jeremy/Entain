@@ -1,17 +1,31 @@
 {
   "failure_counts_by_rule": {
+    "bet_datetime_invalid": 0,
     "bet_datetime_out_of_order_for_customer": 3909,
+    "bet_id_not_integer": 0,
+    "bet_num_not_integer": 0,
+    "bet_num_not_positive": 0,
     "betting_amount_not_gt_0": 835,
+    "betting_amount_not_numeric": 0,
+    "customer_id_missing": 0,
+    "duplicate_bet_id": 0,
+    "duplicate_bet_num_for_customer": 0,
+    "invalid_bet_result": 0,
+    "invalid_category": 0,
+    "invalid_stake_type": 0,
     "payout_mismatch": 3,
+    "payout_not_numeric": 0,
     "price_not_gt_1": 5,
-    "return_for_entain_mismatch": 30
+    "price_not_numeric": 0,
+    "return_for_entain_mismatch": 30,
+    "return_for_entain_not_numeric": 0
   },
-  "generated_at": "2026-04-21T23:59:01.715659+00:00",
-  "input_file": "/Users/jeremyzhang/Documents/Entain-mle-task/bets.csv",
+  "generated_at": "2026-04-22T01:53:18.309559+00:00",
+  "input_file": "bets.csv",
   "invalid_rows": 4765,
   "output_files": {
-    "invalid_bets": "/Users/jeremyzhang/Documents/Entain-mle-task/outputs/validation/invalid_bets.csv",
-    "valid_bets": "/Users/jeremyzhang/Documents/Entain-mle-task/outputs/validation/valid_bets.csv"
+    "invalid_bets": "outputs/validation/invalid_bets.csv",
+    "valid_bets": "outputs/validation/valid_bets.csv"
   },
   "total_rows": 372296,
   "valid_rows": 367531
