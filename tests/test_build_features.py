@@ -109,8 +109,9 @@ class BuildFeaturesTests(unittest.TestCase):
             tmp_path = Path(tmp_dir)
             input_path = tmp_path / "bets.csv"
             output_dir = tmp_path / "features"
-            rows = [_make_row(bet_id=index, customer_id="customer-1", bet_num=index) for index in range(1, 22)]
-            rows[4]["price"] = "1"
+            rows = [_make_row(bet_id=index, customer_id="customer-1", bet_num=index) for index in range(1, 26)]
+            for index in (5, 6, 7, 8, 9):
+                rows[index - 1]["price"] = "1"
             _write_csv(input_path, rows)
 
             run_feature_build(input_path, output_dir)
@@ -119,15 +120,18 @@ class BuildFeaturesTests(unittest.TestCase):
             self.assertEqual(len(feature_rows), 1)
             feature_row = feature_rows[0]
             self.assertEqual(feature_row["first_bet_datetime"], "2024-01-01T10:00:00.000000")
-            self.assertEqual(feature_row["twentieth_bet_datetime"], "2024-01-21T10:00:00.000000")
+            self.assertEqual(feature_row["twentieth_bet_datetime"], "2024-01-25T10:00:00.000000")
+            self.assertEqual(feature_row["bets_used"], "20")
 
             report = json.loads((output_dir / "feature_build_report.json").read_text())
             self.assertEqual(report["customers_with_invalid_bets_within_raw_first_20_by_bet_num"], 1)
+            self.assertEqual(report["invalid_bets_within_raw_first_20_by_bet_num"], 5)
             self.assertEqual(report["customers_emitted"], 1)
-            self.assertEqual(report["customers_skipped_for_insufficient_valid_bets"], 0)
+            self.assertEqual(report["customers_emitted_with_partial_window"], 0)
+            self.assertEqual(report["max_bet_num_used_after_extension"], 25)
             self.assertIn("extended forward", report["invalid_bets_within_first_20_handling"])
 
-    def test_build_features_skips_customers_with_fewer_than_20_valid_bets(self) -> None:
+    def test_build_features_emits_customers_with_fewer_than_20_valid_bets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
             input_path = tmp_path / "bets.csv"
@@ -138,11 +142,55 @@ class BuildFeaturesTests(unittest.TestCase):
             run_feature_build(input_path, output_dir)
 
             feature_rows = _read_csv(output_dir / "customer_features.csv")
-            self.assertEqual(feature_rows, [])
+            self.assertEqual(len(feature_rows), 1)
+            self.assertEqual(feature_rows[0]["bets_used"], "19")
+            self.assertEqual(feature_rows[0]["twentieth_bet_datetime"], "")
 
             report = json.loads((output_dir / "feature_build_report.json").read_text())
-            self.assertEqual(report["customers_emitted"], 0)
-            self.assertEqual(report["customers_skipped_for_insufficient_valid_bets"], 1)
+            self.assertEqual(report["customers_emitted"], 1)
+            self.assertEqual(report["customers_emitted_with_partial_window"], 1)
+            self.assertEqual(report["max_bet_num_used_after_extension"], 19)
+            self.assertIn("fewer than 20 valid bets", report["partial_window_definition"])
+
+    def test_build_features_handles_multiple_customers_with_mixed_window_sizes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            input_path = tmp_path / "bets.csv"
+            output_dir = tmp_path / "features"
+            rows = [
+                *[_make_row(bet_id=index, customer_id="customer-1", bet_num=index) for index in range(1, 23)],
+                *[
+                    _make_row(
+                        bet_id=100 + index,
+                        customer_id="customer-2",
+                        bet_num=index,
+                        category="racing" if index % 2 == 0 else "sports",
+                    )
+                    for index in range(1, 11)
+                ],
+            ]
+            rows[2]["price"] = "1"
+            rows[3]["price"] = "1"
+            _write_csv(input_path, rows)
+
+            run_feature_build(input_path, output_dir)
+
+            feature_rows = sorted(
+                _read_csv(output_dir / "customer_features.csv"),
+                key=lambda row: row["customer_id"],
+            )
+            self.assertEqual(len(feature_rows), 2)
+            self.assertEqual(feature_rows[0]["customer_id"], "customer-1")
+            self.assertEqual(feature_rows[0]["bets_used"], "20")
+            self.assertEqual(feature_rows[0]["twentieth_bet_datetime"], "2024-01-22T10:00:00.000000")
+            self.assertEqual(feature_rows[1]["customer_id"], "customer-2")
+            self.assertEqual(feature_rows[1]["bets_used"], "10")
+            self.assertEqual(feature_rows[1]["twentieth_bet_datetime"], "")
+
+            report = json.loads((output_dir / "feature_build_report.json").read_text())
+            self.assertEqual(report["customers_emitted"], 2)
+            self.assertEqual(report["customers_emitted_with_partial_window"], 1)
+            self.assertEqual(report["customers_with_invalid_bets_within_raw_first_20_by_bet_num"], 1)
 
 
 if __name__ == "__main__":

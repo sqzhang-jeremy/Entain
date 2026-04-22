@@ -1,15 +1,18 @@
 {
   "customers_emitted": 5000,
-  "customers_skipped_for_insufficient_valid_bets": 0,
+  "customers_emitted_with_partial_window": 0,
   "customers_with_invalid_bets_within_raw_first_20_by_bet_num": 1106,
-  "feature_window_policy": "Features are built from the first 20 valid bets after Task 1 validation, ordered by bet_num and then bet_datetime.",
-  "generated_at": "2026-04-22T02:13:48.642484+00:00",
+  "feature_window_policy": "Features are built from the first 20 valid bets after Task 1 validation, ordered by bet_num.",
+  "generated_at": "2026-04-22T05:02:47.874717+00:00",
   "input_file": "bets.csv",
-  "invalid_bets_within_first_20_handling": "If a customer has invalid bets within raw bet_num positions 1-20, those bets are skipped and the feature window is extended forward until 20 valid bets are collected.",
+  "invalid_bets_within_first_20_handling": "If a customer has invalid bets within raw bet_num positions 1-20, those bets are skipped and the feature window is extended forward until 20 valid bets are collected. If fewer than 20 valid bets exist overall, the customer is still emitted with the available valid bets and an empty twentieth_bet_datetime.",
+  "invalid_bets_within_raw_first_20_by_bet_num": 1228,
+  "max_bet_num_used_after_extension": 23,
   "output_files": {
     "customer_features": "outputs/features/customer_features.csv"
   },
   "output_format": "csv",
   "output_format_reason": "CSV emitted to avoid adding a parquet dependency for this local batch task.",
+  "partial_window_definition": "A partial window means fewer than 20 valid bets were available for a customer after validation and forward extension, so features were emitted using all available valid bets and twentieth_bet_datetime was left empty.",
   "total_customers_in_input": 5000
 }

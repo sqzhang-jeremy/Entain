@@ -37,20 +37,28 @@ def run_feature_build(input_path: Path, output_dir: Path) -> None:
     rows, _ = load_validated_rows(input_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    grouped_valid_rows, customers_with_invalid_in_first_20 = _group_rows_for_features(rows)
+    grouped_valid_rows, feature_context = _group_rows_for_features(rows)
     feature_generated_at = datetime.now(timezone.utc).isoformat()
 
     feature_rows = []
-    skipped_customers = 0
+    emitted_partial_window_customers = 0
+    max_bet_num_used_after_extension = 0
     for customer_id, customer_rows in grouped_valid_rows.items():
         ordered_rows = sorted(
             customer_rows,
-            key=lambda row: (row.bet_num, row.bet_datetime, row.line_number),
+            key=lambda row: (row.bet_num, row.line_number),
         )
         selected_rows = ordered_rows[:FEATURE_WINDOW_SIZE]
-        if len(selected_rows) < FEATURE_WINDOW_SIZE:
-            skipped_customers += 1
+        if not selected_rows:
             continue
+
+        if len(selected_rows) < FEATURE_WINDOW_SIZE:
+            emitted_partial_window_customers += 1
+
+        max_bet_num_used_after_extension = max(
+            max_bet_num_used_after_extension,
+            selected_rows[-1].bet_num,
+        )
 
         feature_rows.append(
             _build_feature_row(
@@ -70,29 +78,41 @@ def run_feature_build(input_path: Path, output_dir: Path) -> None:
         output_path=features_path,
         rows=rows,
         emitted_customers=len(feature_rows),
-        skipped_customers=skipped_customers,
-        customers_with_invalid_in_first_20=customers_with_invalid_in_first_20,
+        emitted_partial_window_customers=emitted_partial_window_customers,
+        feature_context=feature_context,
+        max_bet_num_used_after_extension=max_bet_num_used_after_extension,
         feature_generated_at=feature_generated_at,
     )
 
 
+class FeatureContext(dict):
+    """Carries summary counts about how feature windows were constructed."""
+
+
 def _group_rows_for_features(
     rows: list[ValidationRow],
-) -> tuple[dict[str, list[ValidationRow]], int]:
+) -> tuple[dict[str, list[ValidationRow]], FeatureContext]:
     grouped_valid_rows: dict[str, list[ValidationRow]] = defaultdict(list)
     customers_with_invalid_in_first_20: set[str] = set()
+    invalid_bets_in_first_20 = 0
 
     for row in rows:
         if row.customer_id and row.bet_num is not None and row.bet_num <= FEATURE_WINDOW_SIZE:
             if not row.is_valid:
                 customers_with_invalid_in_first_20.add(row.customer_id)
+                invalid_bets_in_first_20 += 1
 
         if not _is_feature_eligible_row(row):
             continue
 
         grouped_valid_rows[row.customer_id].append(row)
 
-    return grouped_valid_rows, len(customers_with_invalid_in_first_20)
+    return grouped_valid_rows, FeatureContext(
+        customers_with_invalid_bets_within_raw_first_20_by_bet_num=len(
+            customers_with_invalid_in_first_20
+        ),
+        invalid_bets_within_raw_first_20_by_bet_num=invalid_bets_in_first_20,
+    )
 
 
 def _is_feature_eligible_row(row: ValidationRow) -> bool:
@@ -123,7 +143,11 @@ def _build_feature_row(
     return {
         "customer_id": customer_id,
         "first_bet_datetime": rows[0].bet_datetime.isoformat(timespec="microseconds"),
-        "twentieth_bet_datetime": rows[-1].bet_datetime.isoformat(timespec="microseconds"),
+        "twentieth_bet_datetime": (
+            rows[-1].bet_datetime.isoformat(timespec="microseconds")
+            if bets_used >= FEATURE_WINDOW_SIZE
+            else ""
+        ),
         "bets_used": str(bets_used),
         "total_betting_amount": _decimal_to_str(total_betting_amount),
         "mean_betting_amount": _decimal_to_str(total_betting_amount / bets_used),
@@ -162,8 +186,9 @@ def _write_feature_report(
     output_path: Path,
     rows: list[ValidationRow],
     emitted_customers: int,
-    skipped_customers: int,
-    customers_with_invalid_in_first_20: int,
+    emitted_partial_window_customers: int,
+    feature_context: FeatureContext,
+    max_bet_num_used_after_extension: int,
     feature_generated_at: str,
 ) -> None:
     customer_ids = {row.customer_id for row in rows if row.customer_id}
@@ -176,16 +201,24 @@ def _write_feature_report(
         "output_format": "csv",
         "output_format_reason": "CSV emitted to avoid adding a parquet dependency for this local batch task.",
         "total_customers_in_input": len(customer_ids),
-        "customers_with_invalid_bets_within_raw_first_20_by_bet_num": customers_with_invalid_in_first_20,
+        **feature_context,
         "customers_emitted": emitted_customers,
-        "customers_skipped_for_insufficient_valid_bets": skipped_customers,
+        "customers_emitted_with_partial_window": emitted_partial_window_customers,
+        "partial_window_definition": (
+            "A partial window means fewer than 20 valid bets were available for a customer "
+            "after validation and forward extension, so features were emitted using all "
+            "available valid bets and twentieth_bet_datetime was left empty."
+        ),
+        "max_bet_num_used_after_extension": max_bet_num_used_after_extension,
         "invalid_bets_within_first_20_handling": (
             "If a customer has invalid bets within raw bet_num positions 1-20, those bets are skipped "
-            "and the feature window is extended forward until 20 valid bets are collected."
+            "and the feature window is extended forward until 20 valid bets are collected. "
+            "If fewer than 20 valid bets exist overall, the customer is still emitted with the available "
+            "valid bets and an empty twentieth_bet_datetime."
         ),
         "feature_window_policy": (
             "Features are built from the first 20 valid bets after Task 1 validation, "
-            "ordered by bet_num and then bet_datetime."
+            "ordered by bet_num."
         ),
     }
 
