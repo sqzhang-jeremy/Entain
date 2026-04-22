@@ -3,7 +3,7 @@
   "customers_emitted_with_partial_window": 0,
   "customers_with_invalid_bets_within_raw_first_20_by_bet_num": 1106,
   "feature_window_policy": "Features are built from the first 20 valid bets after Task 1 validation, ordered by bet_num.",
-  "generated_at": "2026-04-22T05:02:47.874717+00:00",
+  "generated_at": "2026-04-22T05:13:06.569258+00:00",
   "input_file": "bets.csv",
   "invalid_bets_within_first_20_handling": "If a customer has invalid bets within raw bet_num positions 1-20, those bets are skipped and the feature window is extended forward until 20 valid bets are collected. If fewer than 20 valid bets exist overall, the customer is still emitted with the available valid bets and an empty twentieth_bet_datetime.",
   "invalid_bets_within_raw_first_20_by_bet_num": 1228,

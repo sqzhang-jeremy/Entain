@@ -9,3 +9,6 @@ src/entain_bet_pipeline.egg-info/SOURCES.txt
 src/entain_bet_pipeline.egg-info/dependency_links.txt
 src/entain_bet_pipeline.egg-info/entry_points.txt
 src/entain_bet_pipeline.egg-info/top_level.txt
+tests/test_build_features.py
+tests/test_cli.py
+tests/test_validate.py

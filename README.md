@@ -1,56 +1,22 @@
 # Entain Australia Junior MLE Take-Home
 
-This repository is currently set up as a submission scaffold for the Entain Australia junior Machine Learning Engineer take-home assignment.
+This repository contains a local, batch-oriented Python package for the Entain Australia junior Machine Learning Engineer take-home assignment.
 
-At this stage, the goal is to understand the brief, create the expected delivery structure, and document the implementation plan. The actual validation and feature-engineering logic is intentionally not finished yet.
+The package supports two workflows:
 
-## Task Summary
+- validating `bets.csv` against the business rules in the brief
+- building customer-level features from each customer's first 20 valid bets
 
-Build a local, reproducible, batch-oriented Python package that:
-
-- validates `bets.csv` against the business rules from the brief
-- separates valid and invalid records
-- produces a machine-readable validation summary
-- generates customer-level features from each customer's first 20 bets
-- exposes both workflows through a CLI
-- runs in Docker
-- includes tests and design documentation
-
-## Inputs Available In This Workspace
-
-- [jr-mle-task.docx](/Users/jeremyzhang/Documents/Entain-mle-task/jr-mle-task.docx)
-- [bets.csv](/Users/jeremyzhang/Documents/Entain-mle-task/bets.csv)
-
-Observed from the local dataset:
-
-- file size is approximately 42 MB
-- CSV columns are:
-  `bet_id, customer_id, bet_datetime, bet_num, betting_amount, price, category, stake_type, bet_result, payout, return_for_entain`
-
-## Deliverables Required By The Brief
-
-- source code
-- `pyproject.toml`
-- `Dockerfile`
-- `README.md`
-- tests
-- validation outputs
-- customer feature output
-- architecture diagram
-- design note
-
-## Scaffolded Repository Layout
+## Project Layout
 
 ```text
 .
-|-- AGENT.md
 |-- Dockerfile
 |-- README.md
 |-- bets.csv
 |-- docs/
 |   |-- architecture-diagram.mmd
 |   `-- design-note.md
-|-- jr-mle-task.docx
 |-- outputs/
 |   |-- features/
 |   `-- validation/
@@ -62,81 +28,77 @@ Observed from the local dataset:
 |       |-- cli.py
 |       `-- validate.py
 `-- tests/
-    `-- README.md
+    |-- test_build_features.py
+    |-- test_cli.py
+    `-- test_validate.py
 ```
 
-## Expected CLI Contract
+## Requirements
 
-These are the commands the final submission is expected to support:
+- Python 3.11 or newer
+
+## Install
+
+Install the package locally in editable mode:
+
+```bash
+python3.11 -m pip install -e .
+```
+
+## CLI Usage
+
+Validation:
 
 ```bash
 bet-pipeline validate --input /data/bets.csv --output /outputs/validation/
+```
+
+Feature generation:
+
+```bash
 bet-pipeline build-features --input /data/bets.csv --output /outputs/features/
 ```
 
-The current codebase only contains CLI scaffolding and placeholder modules.
+The `build-features` command is self-contained: it re-validates the raw input before generating customer features, so it does not require a prior `validate` run.
 
-## Planned Outputs
+## Output Files
 
-Validation task:
+Validation outputs:
 
-- `valid_bets`
-- `invalid_bets`
-- `validation_report.json` or equivalent machine-readable summary
+- `outputs/validation/valid_bets.csv`
+- `outputs/validation/invalid_bets.csv`
+- `outputs/validation/validation_report.json`
 
-Feature task:
+Feature outputs:
 
-- `customer_features` in parquet if practical, otherwise CSV with justification
+- `outputs/features/customer_features.csv`
+- `outputs/features/feature_build_report.json`
 
-## Working Assumptions
+`customer_features` is emitted as CSV for this submission to keep the package lightweight, dependency-minimal, and easy to inspect manually. Parquet would be a stronger default in a larger production pipeline where schema preservation, compression, and columnar reads matter more.
 
-- `bet_num` is the authoritative ordering field per customer
-- invalid data should be surfaced explicitly, not hidden
-- handling of invalid rows within the first 20 bets must be deterministic and documented
-- this repo will stay local-only and batch-only to match the brief
+## Testing
 
-## Files To Complete Later
-
-- [src/bet_pipeline/validate.py](/Users/jeremyzhang/Documents/Entain-mle-task/src/bet_pipeline/validate.py): validation implementation
-- [src/bet_pipeline/build_features.py](/Users/jeremyzhang/Documents/Entain-mle-task/src/bet_pipeline/build_features.py): feature generation implementation
-- [src/bet_pipeline/cli.py](/Users/jeremyzhang/Documents/Entain-mle-task/src/bet_pipeline/cli.py): CLI wiring
-- [tests/README.md](/Users/jeremyzhang/Documents/Entain-mle-task/tests/README.md): test plan to be replaced with actual tests
-- [docs/architecture-diagram.mmd](/Users/jeremyzhang/Documents/Entain-mle-task/docs/architecture-diagram.mmd): architecture diagram template
-- [docs/design-note.md](/Users/jeremyzhang/Documents/Entain-mle-task/docs/design-note.md): design note template
-
-## Runbook Placeholder
-
-Local install:
+Run the test suite with the standard library test runner:
 
 ```bash
-python -m pip install -e .
+PYTHONPATH=src python3.11 -m unittest tests.test_validate tests.test_build_features tests.test_cli
 ```
 
-Target CLI usage after implementation:
+The current suite covers:
 
-```bash
-bet-pipeline validate --input bets.csv --output outputs/validation
-bet-pipeline build-features --input bets.csv --output outputs/features
-```
+- validation rule checks and report output
+- customer feature aggregation and invalid-bet handling
+- CLI parser and command dispatch
 
-Docker placeholder:
+## Current Status
 
-```bash
-docker build -t entain-bet-pipeline .
-docker run --rm -v "$(pwd):/workspace" entain-bet-pipeline --help
-```
+Implemented:
 
-## Completion Checklist
+- Task 1: validation pipeline
+- Task 2: customer feature pipeline
+- Task 3: Python packaging, CLI entrypoint, and automated tests
 
-- [ ] Implement validation rules and outputs
-- [ ] Implement customer feature generation
-- [ ] Decide and document invalid-row handling for the first 20 bets
-- [ ] Add tests
-- [ ] Generate final output artifacts
-- [ ] Complete architecture diagram
-- [ ] Complete design note
-- [ ] Verify Docker workflow
+Remaining:
 
-## Notes
-
-This scaffold is designed to make the assignment easier to complete incrementally while keeping the final submission requirements visible from the start.
+- Task 4: Docker workflow validation and documentation polish
+- Task 5: architecture diagram and final design note completion

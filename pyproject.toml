@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "entain-bet-pipeline"
 version = "0.1.0"
-description = "Scaffold for the Entain Australia junior MLE take-home assignment"
+description = "Local batch pipeline for validating bets and building customer features"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
