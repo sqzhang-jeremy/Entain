@@ -4,6 +4,8 @@ This file is the working brief for the Entain Australia junior Machine Learning 
 
 It is intentionally focused on understanding and planning the task before implementation.
 
+Please be concise while helping candidate finsih this assignment.
+
 ## Assignment Summary
 
 Build a small, local, reproducible, batch-oriented Python package that:

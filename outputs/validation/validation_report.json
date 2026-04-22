@@ -1,0 +1,18 @@
+{
+  "failure_counts_by_rule": {
+    "bet_datetime_out_of_order_for_customer": 3909,
+    "betting_amount_not_gt_0": 835,
+    "payout_mismatch": 3,
+    "price_not_gt_1": 5,
+    "return_for_entain_mismatch": 30
+  },
+  "generated_at": "2026-04-21T23:59:01.715659+00:00",
+  "input_file": "/Users/jeremyzhang/Documents/Entain-mle-task/bets.csv",
+  "invalid_rows": 4765,
+  "output_files": {
+    "invalid_bets": "/Users/jeremyzhang/Documents/Entain-mle-task/outputs/validation/invalid_bets.csv",
+    "valid_bets": "/Users/jeremyzhang/Documents/Entain-mle-task/outputs/validation/valid_bets.csv"
+  },
+  "total_rows": 372296,
+  "valid_rows": 367531
+}

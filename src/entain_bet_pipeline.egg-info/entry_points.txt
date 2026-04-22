@@ -1,0 +1,2 @@
+[console_scripts]
+bet-pipeline = bet_pipeline.cli:main

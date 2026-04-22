@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .DS_Store
+bets.csv
+jr-mle-task.docx
