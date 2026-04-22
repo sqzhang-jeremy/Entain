@@ -1,22 +1,22 @@
-%% Mermaid template for the final architecture diagram.
-%% Replace labels or structure as the design is finalized.
-
 flowchart LR
     A["Raw betting data landing area"] --> B["Batch scheduler / job trigger"]
     B --> C["Validation job"]
     C --> D["Validated bets layer"]
-    C --> E["Invalid record quarantine / review path"]
+    C --> E["Invalid-record quarantine / review queue"]
     D --> F["Customer feature generation job"]
     F --> G["Versioned feature output / feature store / serving table"]
 
     H["Schema contract / metadata / configuration"] -. governs .-> C
     H -. governs .-> F
+    H -. defines feature logic .-> G
 
     C -. logs / metrics .-> I["Logging / monitoring / alerting"]
     F -. logs / metrics .-> I
+    E -. data quality alerts .-> I
 
-    G --> J["Downstream consumer 1: batch model training"]
-    G --> K["Downstream consumer 2: BI / analytics / CRM"]
+    G --> J["Downstream consumer: batch model training"]
+    G --> K["Downstream consumer: batch scoring / decisioning"]
+    G --> L["Downstream consumer: BI / analytics / CRM"]
 
-    L["Rerun / backfill / correction path"] --> C
-    L --> F
+    M["Rerun / backfill / correction path"] --> C
+    M --> F

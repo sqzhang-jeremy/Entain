@@ -1,68 +1,49 @@
-# Design Note Template
-
-This file is a starter template for the final design note required by the brief.
+# Design Note
 
 ## 1. System Overview
 
-Describe the end-to-end batch workflow and where this local assignment fits in a broader ML platform.
+This pipeline is designed as a scheduled batch workflow. Raw betting data lands in a controlled input area, a validation job separates valid and invalid records, and a feature job builds customer-level features from validated bets. The local exercise represents the core processing layer inside a broader ML platform rather than the whole system.
 
 ## 2. Components And Responsibilities
 
-For each component in the diagram, explain:
+- **Raw betting data landing area** receives source CSV files and acts as the system entry point.
+- **Batch scheduler / job trigger** runs the workflow on a regular cadence or after a file arrives.
+- **Validation job** enforces schema, domain, numeric, and derived-value rules, then outputs valid bets, invalid bets, and a machine-readable report.
+- **Invalid-record quarantine / review queue** stores rejected records for investigation and operational follow-up.
+- **Validated bets layer** holds curated records that downstream jobs can trust.
+- **Customer feature generation job** aggregates each customer's first 20 valid bets into a feature row.
+- **Versioned feature output / feature store / serving table** publishes stable feature datasets for downstream consumers.
+- **Schema contract / metadata / configuration** defines the allowed input fields, rule versions, and feature definitions used by both jobs.
+- **Logging / monitoring / alerting** captures run status, rule failures, data-volume changes, and operational incidents.
+- **Downstream consumers** include batch model training, batch scoring or operational decisioning, and BI / analytics / CRM workflows.
+- **Rerun / backfill / correction path** allows the pipeline to be re-executed if source files change or a defect is fixed.
 
-- why it exists
-- what responsibility it owns
-- what data enters it
-- what data leaves it
-
-Suggested components:
-
-- raw data landing area
-- scheduler / trigger
-- validation job
-- invalid-record quarantine
-- validated-bets layer
-- customer feature generation job
-- versioned feature output or feature store
-- metadata / schema contract layer
-- monitoring / alerting
-- downstream consumers
-- rerun / backfill path
+Each component has a simple contract: raw data goes in, validated or derived data comes out, and metadata governs both validation and feature logic.
 
 ## 3. Batch vs Streaming
 
-Explain why batch processing is appropriate for this task and where streaming might or might not fit in a production setting.
+Batch processing is the right fit here because the brief is file-based, local, reproducible, and centered on customer aggregates rather than low-latency decisions. Streaming could make sense in production for near-real-time feature freshness or operational decisioning, but it would add complexity around late events, ordering, and state management that is unnecessary for this task.
 
-## 4. Schema Safety And Versioning
+## 4. Schema Safety, Invalid Records, And Feature Consistency
 
-Describe how schemas are validated, versioned, and kept safe for downstream users.
+Schema safety comes from validating required columns, allowed values, numeric constraints, and derived values before feature generation runs. Rule versions and feature definitions should be tracked in metadata so downstream users know exactly which contract produced a dataset.
 
-## 5. Invalid Record Handling
+Invalid records are isolated into a quarantine path rather than dropped silently. That makes data quality visible, allows operators to investigate root causes, and prevents corrupted inputs from contaminating curated layers.
 
-Document how invalid records are isolated, investigated, and surfaced to operators.
+Feature consistency comes from using a single governed definition of the feature window, ordering logic, and aggregation rules. Producers and consumers should depend on the same documented schema and versioned dataset contract.
 
-## 6. Feature Consistency
+## 5. Downstream Interfaces, Reruns, And Operations
 
-Explain how feature definitions stay consistent across producers and consumers.
+Downstream systems consume the curated feature table through a stable schema, versioned output location, or feature-store-style table. Batch training jobs can read full historical snapshots, while scoring, CRM, or BI workflows can read the latest approved version.
 
-## 7. Downstream Interfaces
+Reruns and backfills should be idempotent: the same input and rule version should produce the same outputs. If source data changes or a validation bug is fixed, the pipeline should be able to reprocess the affected file range and publish a corrected validated-bets layer and feature dataset.
 
-Describe how downstream systems consume the features and what interface or contract they rely on.
+In production, I would log run start/end, row counts, invalid row counts by rule, customers emitted, and feature-window edge cases. I would alert on job failure, unusual invalid-rate spikes, missing input files, schema drift, and unexpected drops in customer coverage.
 
-## 8. Reruns, Idempotency, And Backfills
+## 6. Trade-Offs And Assumptions
 
-Document the rerun and correction strategy if source data changes or defects are found.
-
-## 9. Logging, Metrics, And Alerts
-
-List the key events, data-quality measures, and operational alerts that should exist in production.
-
-## 10. Trade-Offs And Assumptions
-
-Capture the main design trade-offs and explicit assumptions for this submission.
-
-### Output Format Choice
-
-`customer_features` is emitted as CSV for this submission rather than parquet. CSV keeps the solution lightweight, easy to inspect manually, and free from extra serialization dependencies, which is a good fit for a local, reproducible take-home assignment where reviewer accessibility matters.
-
-Parquet would be a stronger default in a larger production feature pipeline because it is columnar, more storage-efficient, and preserves schema and data types more reliably for downstream analytics and ML jobs. For this assignment, the trade-off favours simplicity and transparency over storage and read-performance optimisation.
+- Batch is preferred over streaming for simplicity and reproducibility.
+- CSV is acceptable for this submission because it is easy to inspect and avoids extra dependencies; parquet would be stronger in a larger production pipeline.
+- Invalid records are surfaced explicitly, not hidden.
+- Feature generation depends on the validated layer so downstream consumers do not need to re-implement data quality rules.
+- The local assignment uses a minimal stack, but the same responsibilities would map naturally into a larger production ML platform.
