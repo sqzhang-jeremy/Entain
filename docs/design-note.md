@@ -60,3 +60,9 @@ List the key events, data-quality measures, and operational alerts that should e
 ## 10. Trade-Offs And Assumptions
 
 Capture the main design trade-offs and explicit assumptions for this submission.
+
+### Output Format Choice
+
+`customer_features` is emitted as CSV for this submission rather than parquet. CSV keeps the solution lightweight, easy to inspect manually, and free from extra serialization dependencies, which is a good fit for a local, reproducible take-home assignment where reviewer accessibility matters.
+
+Parquet would be a stronger default in a larger production feature pipeline because it is columnar, more storage-efficient, and preserves schema and data types more reliably for downstream analytics and ML jobs. For this assignment, the trade-off favours simplicity and transparency over storage and read-performance optimisation.

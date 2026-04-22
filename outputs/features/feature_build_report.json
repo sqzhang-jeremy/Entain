@@ -1,0 +1,15 @@
+{
+  "customers_emitted": 5000,
+  "customers_skipped_for_insufficient_valid_bets": 0,
+  "customers_with_invalid_bets_within_raw_first_20_by_bet_num": 1106,
+  "feature_window_policy": "Features are built from the first 20 valid bets after Task 1 validation, ordered by bet_num and then bet_datetime.",
+  "generated_at": "2026-04-22T02:13:48.642484+00:00",
+  "input_file": "bets.csv",
+  "invalid_bets_within_first_20_handling": "If a customer has invalid bets within raw bet_num positions 1-20, those bets are skipped and the feature window is extended forward until 20 valid bets are collected.",
+  "output_files": {
+    "customer_features": "outputs/features/customer_features.csv"
+  },
+  "output_format": "csv",
+  "output_format_reason": "CSV emitted to avoid adding a parquet dependency for this local batch task.",
+  "total_customers_in_input": 5000
+}

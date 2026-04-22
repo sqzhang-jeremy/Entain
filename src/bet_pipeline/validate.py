@@ -84,11 +84,18 @@ class ValidationRow:
         return not self.errors
 
 
-def run_validation(input_path: Path, output_dir: Path) -> None:
-    """Validate the raw bet CSV and emit valid/invalid outputs plus a report."""
+def load_validated_rows(input_path: Path) -> tuple[list[ValidationRow], list[str]]:
+    """Load input rows and apply all Task 1 validations without writing outputs."""
 
     rows, fieldnames = _load_rows(input_path)
     _apply_cross_row_validation(rows)
+    return rows, fieldnames
+
+
+def run_validation(input_path: Path, output_dir: Path) -> None:
+    """Validate the raw bet CSV and emit valid/invalid outputs plus a report."""
+
+    rows, fieldnames = load_validated_rows(input_path)
 
     valid_rows = [row for row in rows if row.is_valid]
     invalid_rows = [row for row in rows if not row.is_valid]
